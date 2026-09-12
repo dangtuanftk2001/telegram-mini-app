@@ -10,6 +10,34 @@ content="width=device-width, initial-scale=1.0">
 <title>Quản lý kho</title>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    .wallet-actions {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+}
+
+.debit-button {
+    background: #d9534f;
+}
+
+.wallet-history-row {
+    padding: 10px 0;
+    border-bottom: 1px solid #eee;
+}
+
+.wallet-credit {
+    font-weight: bold;
+}
+
+.wallet-debit {
+    font-weight: bold;
+}
+
+.wallet-date {
+    font-size: 12px;
+    color: #777;
+    margin-top: 4px;
+}
 
 <style>
 
@@ -221,6 +249,74 @@ id="stockMessage">
 
 <div id="inventory">
 Đang tải...
+<!-- QUẢN LÝ VÍ -->
+
+<div class="box">
+
+<h3>💰 Quản lý ví khách hàng</h3>
+
+<input
+id="walletUserId"
+type="number"
+placeholder="Telegram ID của khách">
+
+<button onclick="loadWallet()">
+TÌM KHÁCH
+</button>
+
+<div
+id="walletInfo"
+style="display:none; margin-top:15px;">
+
+<div style="
+    font-size:20px;
+    font-weight:bold;
+    margin-bottom:12px;
+">
+Số dư:
+<span id="walletBalance">0đ</span>
+</div>
+
+<input
+id="walletAmount"
+type="number"
+placeholder="Số tiền, ví dụ 100000">
+
+<input
+id="walletReason"
+placeholder="Lý do, ví dụ: Khách chuyển khoản muộn">
+
+<div class="wallet-actions">
+
+<button
+onclick="adjustWallet('credit')">
++ CỘNG TIỀN
+</button>
+
+<button
+class="debit-button"
+onclick="adjustWallet('debit')">
+- TRỪ TIỀN
+</button>
+
+</div>
+
+<div
+class="message"
+id="walletMessage">
+</div>
+
+<hr style="
+border:none;
+border-top:1px solid #ddd;
+margin:20px 0;
+">
+
+<h3>📜 Lịch sử ví</h3>
+
+<div id="walletHistory">
+</div>
+
 </div>
 
 </div>
@@ -704,7 +800,361 @@ function formatMoney(number) {
 
 }
 
+/* ==========================
+   QUẢN LÝ VÍ
+========================== */
 
+let currentWalletUserId = null;
+
+
+async function loadWallet() {
+
+    const userId =
+        document.getElementById(
+            "walletUserId"
+        ).value.trim();
+
+
+    const message =
+        document.getElementById(
+            "walletMessage"
+        );
+
+
+    message.innerText = "";
+
+
+    if (!userId) {
+
+        alert(
+            "Hãy nhập Telegram ID của khách."
+        );
+
+        return;
+
+    }
+
+
+    currentWalletUserId =
+        Number(userId);
+
+
+    const {
+        data: wallet,
+        error
+    } =
+        await sb
+        .from("wallets")
+        .select(
+            "telegram_user_id,balance"
+        )
+        .eq(
+            "telegram_user_id",
+            currentWalletUserId
+        )
+        .maybeSingle();
+
+
+    if (error) {
+
+        message.innerText =
+            "❌ " + error.message;
+
+        return;
+
+    }
+
+
+    document.getElementById(
+        "walletInfo"
+    ).style.display = "block";
+
+
+    document.getElementById(
+        "walletBalance"
+    ).innerText =
+        formatMoney(
+            wallet
+                ? wallet.balance
+                : 0
+        );
+
+
+    await loadWalletHistory();
+
+}
+
+
+
+/* ==========================
+   CỘNG / TRỪ VÍ
+========================== */
+
+async function adjustWallet(type) {
+
+    if (!currentWalletUserId) {
+
+        alert(
+            "Hãy tìm khách trước."
+        );
+
+        return;
+
+    }
+
+
+    const rawAmount =
+        Number(
+            document.getElementById(
+                "walletAmount"
+            ).value
+        );
+
+
+    const reason =
+        document.getElementById(
+            "walletReason"
+        ).value.trim();
+
+
+    if (
+        !rawAmount ||
+        rawAmount <= 0
+    ) {
+
+        alert(
+            "Số tiền phải lớn hơn 0."
+        );
+
+        return;
+
+    }
+
+
+    if (!reason) {
+
+        alert(
+            "Hãy nhập lý do điều chỉnh."
+        );
+
+        return;
+
+    }
+
+
+    const amount =
+        type === "credit"
+            ? rawAmount
+            : -rawAmount;
+
+
+    const actionText =
+        type === "credit"
+            ? "CỘNG"
+            : "TRỪ";
+
+
+    const ok =
+        confirm(
+            actionText +
+            " " +
+            formatMoney(rawAmount) +
+            " cho Telegram ID " +
+            currentWalletUserId +
+            "?"
+        );
+
+
+    if (!ok) {
+        return;
+    }
+
+
+    const {
+        data,
+        error
+    } =
+        await sb.rpc(
+            "admin_adjust_wallet",
+            {
+                p_telegram_user_id:
+                    currentWalletUserId,
+
+                p_amount:
+                    amount,
+
+                p_reason:
+                    reason
+            }
+        );
+
+
+    const message =
+        document.getElementById(
+            "walletMessage"
+        );
+
+
+    if (error) {
+
+        message.innerText =
+            "❌ " + error.message;
+
+        return;
+
+    }
+
+
+    message.innerText =
+        "✅ Thành công. Số dư mới: " +
+        formatMoney(data);
+
+
+    document.getElementById(
+        "walletAmount"
+    ).value = "";
+
+
+    document.getElementById(
+        "walletReason"
+    ).value = "";
+
+
+    await loadWallet();
+
+}
+
+
+
+/* ==========================
+   LỊCH SỬ VÍ
+========================== */
+
+async function loadWalletHistory() {
+
+    const container =
+        document.getElementById(
+            "walletHistory"
+        );
+
+
+    container.innerHTML =
+        "Đang tải...";
+
+
+    const {
+        data,
+        error
+    } =
+        await sb
+        .from(
+            "wallet_transactions"
+        )
+        .select(
+            "amount,type,reason,created_at,sepay_transaction_id"
+        )
+        .eq(
+            "telegram_user_id",
+            currentWalletUserId
+        )
+        .order(
+            "created_at",
+            {
+                ascending: false
+            }
+        )
+        .limit(30);
+
+
+    if (error) {
+
+        container.innerText =
+            "Không tải được lịch sử.";
+
+        return;
+
+    }
+
+
+    if (
+        !data ||
+        data.length === 0
+    ) {
+
+        container.innerHTML =
+            "<div>Chưa có giao dịch ví.</div>";
+
+        return;
+
+    }
+
+
+    container.innerHTML = "";
+
+
+    data.forEach(tx => {
+
+        const row =
+            document.createElement(
+                "div"
+            );
+
+
+        row.className =
+            "wallet-history-row";
+
+
+        const isCredit =
+            tx.type === "credit";
+
+
+        const sign =
+            isCredit
+                ? "+"
+                : "-";
+
+
+        const date =
+            new Date(
+                tx.created_at
+            ).toLocaleString(
+                "vi-VN"
+            );
+
+
+        row.innerHTML = `
+
+            <div class="${
+                isCredit
+                    ? "wallet-credit"
+                    : "wallet-debit"
+            }">
+
+                ${sign}${formatMoney(
+                    tx.amount
+                )}
+
+            </div>
+
+            <div>
+                ${
+                    tx.reason ||
+                    "Không có ghi chú"
+                }
+            </div>
+
+            <div class="wallet-date">
+                ${date}
+            </div>
+
+        `;
+
+
+        container.appendChild(row);
+
+    });
+
+}
 
 /* ==========================
    START
