@@ -1,1 +1,709 @@
+<!DOCTYPE html>
+<html lang="vi">
 
+<head>
+<meta charset="UTF-8">
+
+<meta name="viewport"
+content="width=device-width, initial-scale=1.0">
+
+<title>Quản lý kho</title>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+<style>
+
+* {
+    box-sizing: border-box;
+}
+
+body {
+    margin: 0;
+    font-family: Arial, sans-serif;
+    background: #f4f4f4;
+    color: #222;
+}
+
+.container {
+    max-width: 650px;
+    margin: auto;
+    padding: 15px;
+}
+
+.box {
+    background: white;
+    border-radius: 12px;
+    padding: 18px;
+    margin-bottom: 15px;
+    box-shadow: 0 2px 8px rgba(0,0,0,.08);
+}
+
+h2, h3 {
+    margin-top: 0;
+}
+
+input,
+select,
+textarea,
+button {
+    width: 100%;
+    padding: 11px;
+    margin-top: 8px;
+    margin-bottom: 8px;
+    border-radius: 8px;
+    border: 1px solid #ccc;
+    font-size: 15px;
+}
+
+textarea {
+    min-height: 160px;
+    resize: vertical;
+}
+
+button {
+    background: #2481cc;
+    color: white;
+    border: none;
+    cursor: pointer;
+    font-weight: bold;
+}
+
+button:hover {
+    opacity: .9;
+}
+
+.logout {
+    background: #555;
+}
+
+.message {
+    margin-top: 10px;
+    font-weight: bold;
+}
+
+.product-row {
+    display: flex;
+    justify-content: space-between;
+    padding: 10px 5px;
+    border-bottom: 1px solid #eee;
+}
+
+.price {
+    font-size: 13px;
+    color: #777;
+}
+
+#adminArea {
+    display: none;
+}
+
+</style>
+</head>
+
+
+<body>
+
+<div class="container">
+
+<!-- LOGIN -->
+
+<div class="box" id="loginBox">
+
+<h2>🔐 Đăng nhập quản trị</h2>
+
+<input
+id="email"
+type="email"
+placeholder="Email admin">
+
+<input
+id="password"
+type="password"
+placeholder="Mật khẩu">
+
+<button onclick="login()">
+ĐĂNG NHẬP
+</button>
+
+<div
+class="message"
+id="loginMessage">
+</div>
+
+</div>
+
+
+<!-- ADMIN -->
+
+<div id="adminArea">
+
+<div class="box">
+
+<h2>📦 Quản lý kho</h2>
+
+<div id="adminEmail"></div>
+
+<button
+class="logout"
+onclick="logout()">
+Đăng xuất
+</button>
+
+</div>
+
+
+<!-- THÊM SẢN PHẨM -->
+
+<div class="box">
+
+<h3>➕ Thêm sản phẩm</h3>
+
+<input
+id="productName"
+placeholder="Tên sản phẩm, ví dụ: ChatGPT">
+
+<input
+id="productSlug"
+placeholder="Mã sản phẩm, ví dụ: chatgpt">
+
+<input
+id="productPrice"
+type="number"
+placeholder="Giá bán, ví dụ: 100000">
+
+<button onclick="addProduct()">
+THÊM SẢN PHẨM
+</button>
+
+<div
+class="message"
+id="productMessage">
+</div>
+
+</div>
+
+
+<!-- NHẬP HÀNG -->
+
+<div class="box">
+
+<h3>📥 Nhập hàng</h3>
+
+<select id="stockProduct"></select>
+
+<textarea
+id="stockData"
+placeholder="Mỗi dòng là 1 sản phẩm.
+
+Ví dụ:
+
+taikhoan1|matkhau1
+taikhoan2|matkhau2
+taikhoan3|matkhau3"></textarea>
+
+<button onclick="importStock()">
+NHẬP VÀO KHO
+</button>
+
+<div
+class="message"
+id="stockMessage">
+</div>
+
+</div>
+
+
+<!-- TỒN KHO -->
+
+<div class="box">
+
+<h3>📊 Tồn kho hiện tại</h3>
+
+<div id="inventory">
+Đang tải...
+</div>
+
+</div>
+
+</div>
+
+</div>
+
+
+
+<script>
+
+/* ==========================
+   THÔNG TIN SUPABASE
+========================== */
+
+const SUPABASE_URL =
+"https://xkepazqrzfjvgkijnfrv.supabase.co";
+
+const SUPABASE_KEY =
+"sb_publishable_iWGggP4RFF-MeZA9EaY_WA_u47nCBUg";
+
+
+const sb = supabase.createClient(
+    SUPABASE_URL,
+    SUPABASE_KEY
+);
+
+
+
+/* ==========================
+   KIỂM TRA LOGIN
+========================== */
+
+async function checkLogin() {
+
+    const {
+        data: { session }
+    } = await sb.auth.getSession();
+
+
+    if (session) {
+
+        showAdmin(session.user);
+
+    } else {
+
+        showLogin();
+
+    }
+
+}
+
+
+
+function showAdmin(user) {
+
+    document.getElementById("loginBox")
+        .style.display = "none";
+
+    document.getElementById("adminArea")
+        .style.display = "block";
+
+    document.getElementById("adminEmail")
+        .innerText =
+        "Đang đăng nhập: " + user.email;
+
+    loadProducts();
+
+    loadInventory();
+
+}
+
+
+
+function showLogin() {
+
+    document.getElementById("loginBox")
+        .style.display = "block";
+
+    document.getElementById("adminArea")
+        .style.display = "none";
+
+}
+
+
+
+/* ==========================
+   LOGIN
+========================== */
+
+async function login() {
+
+    const email =
+        document.getElementById("email").value.trim();
+
+    const password =
+        document.getElementById("password").value;
+
+
+    const { data, error } =
+        await sb.auth.signInWithPassword({
+            email,
+            password
+        });
+
+
+    if (error) {
+
+        document.getElementById(
+            "loginMessage"
+        ).innerText =
+            "❌ " + error.message;
+
+        return;
+
+    }
+
+
+    document.getElementById(
+        "loginMessage"
+    ).innerText = "";
+
+
+    showAdmin(data.user);
+
+}
+
+
+
+/* ==========================
+   LOGOUT
+========================== */
+
+async function logout() {
+
+    await sb.auth.signOut();
+
+    showLogin();
+
+}
+
+
+
+/* ==========================
+   THÊM SẢN PHẨM
+========================== */
+
+async function addProduct() {
+
+    const name =
+        document.getElementById(
+            "productName"
+        ).value.trim();
+
+
+    let slug =
+        document.getElementById(
+            "productSlug"
+        ).value.trim().toLowerCase();
+
+
+    const price =
+        Number(
+            document.getElementById(
+                "productPrice"
+            ).value
+        );
+
+
+    if (!name || !slug || !price) {
+
+        document.getElementById(
+            "productMessage"
+        ).innerText =
+            "❌ Hãy nhập đủ tên, mã và giá.";
+
+        return;
+
+    }
+
+
+    const { error } =
+        await sb
+        .from("products")
+        .insert({
+
+            name: name,
+
+            slug: slug,
+
+            price: price,
+
+            is_active: true
+
+        });
+
+
+    if (error) {
+
+        document.getElementById(
+            "productMessage"
+        ).innerText =
+            "❌ " + error.message;
+
+        return;
+
+    }
+
+
+    document.getElementById(
+        "productMessage"
+    ).innerText =
+        "✅ Đã thêm " + name;
+
+
+    document.getElementById(
+        "productName"
+    ).value = "";
+
+    document.getElementById(
+        "productSlug"
+    ).value = "";
+
+    document.getElementById(
+        "productPrice"
+    ).value = "";
+
+
+    await loadProducts();
+
+    await loadInventory();
+
+}
+
+
+
+/* ==========================
+   LOAD DANH SÁCH SẢN PHẨM
+========================== */
+
+async function loadProducts() {
+
+    const { data, error } =
+        await sb
+        .from("products")
+        .select("id,name,slug")
+        .eq("is_active", true)
+        .order("name");
+
+
+    if (error) {
+
+        console.error(error);
+
+        return;
+
+    }
+
+
+    const select =
+        document.getElementById(
+            "stockProduct"
+        );
+
+
+    select.innerHTML = "";
+
+
+    data.forEach(product => {
+
+        const option =
+            document.createElement(
+                "option"
+            );
+
+
+        option.value =
+            product.id;
+
+
+        option.textContent =
+            product.name;
+
+
+        select.appendChild(option);
+
+    });
+
+}
+
+
+
+/* ==========================
+   NHẬP HÀNG HÀNG LOẠT
+========================== */
+
+async function importStock() {
+
+    const productId =
+        document.getElementById(
+            "stockProduct"
+        ).value;
+
+
+    const text =
+        document.getElementById(
+            "stockData"
+        ).value;
+
+
+    const lines =
+        text
+        .split("\n")
+        .map(line => line.trim())
+        .filter(line => line.length > 0);
+
+
+    if (!productId) {
+
+        alert(
+            "Hãy chọn sản phẩm."
+        );
+
+        return;
+
+    }
+
+
+    if (lines.length === 0) {
+
+        alert(
+            "Bạn chưa nhập hàng."
+        );
+
+        return;
+
+    }
+
+
+    const items =
+        lines.map(line => ({
+
+            product_id:
+                Number(productId),
+
+            delivery_data:
+                line,
+
+            status:
+                "available"
+
+        }));
+
+
+    const { error } =
+        await sb
+        .from("stock_items")
+        .insert(items);
+
+
+    if (error) {
+
+        document.getElementById(
+            "stockMessage"
+        ).innerText =
+            "❌ " + error.message;
+
+        return;
+
+    }
+
+
+    document.getElementById(
+        "stockMessage"
+    ).innerText =
+        "✅ Đã nhập " +
+        lines.length +
+        " sản phẩm vào kho.";
+
+
+    document.getElementById(
+        "stockData"
+    ).value = "";
+
+
+    await loadInventory();
+
+}
+
+
+
+/* ==========================
+   XEM TỒN KHO
+========================== */
+
+async function loadInventory() {
+
+    const { data, error } =
+        await sb.rpc(
+            "get_store_products"
+        );
+
+
+    const container =
+        document.getElementById(
+            "inventory"
+        );
+
+
+    if (error) {
+
+        container.innerText =
+            "Không tải được tồn kho.";
+
+        return;
+
+    }
+
+
+    container.innerHTML = "";
+
+
+    data.forEach(product => {
+
+        const row =
+            document.createElement(
+                "div"
+            );
+
+
+        row.className =
+            "product-row";
+
+
+        row.innerHTML = `
+
+            <div>
+
+                <strong>
+                    ${product.name}
+                </strong>
+
+                <div class="price">
+                    ${formatMoney(
+                        product.price
+                    )}
+                </div>
+
+            </div>
+
+            <strong>
+                ${product.stock}
+            </strong>
+
+        `;
+
+
+        container.appendChild(row);
+
+    });
+
+}
+
+
+
+function formatMoney(number) {
+
+    return new Intl.NumberFormat(
+        "vi-VN"
+    ).format(number) + "đ";
+
+}
+
+
+
+/* ==========================
+   START
+========================== */
+
+checkLogin();
+
+</script>
+
+</body>
+</html>
