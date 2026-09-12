@@ -8,9 +8,7 @@
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
   <style>
-    * {
-      box-sizing: border-box;
-    }
+    * { box-sizing: border-box; }
 
     body {
       margin: 0;
@@ -20,22 +18,20 @@
     }
 
     .container {
-      max-width: 650px;
+      max-width: 760px;
       margin: auto;
       padding: 15px;
     }
 
     .box {
-      background: white;
+      background: #fff;
       border-radius: 12px;
       padding: 18px;
       margin-bottom: 15px;
       box-shadow: 0 2px 8px rgba(0,0,0,.08);
     }
 
-    h2, h3 {
-      margin-top: 0;
-    }
+    h2, h3 { margin-top: 0; }
 
     input,
     select,
@@ -51,8 +47,9 @@
     }
 
     textarea {
-      min-height: 160px;
+      min-height: 150px;
       resize: vertical;
+      font-family: Arial, sans-serif;
     }
 
     button {
@@ -63,17 +60,27 @@
       font-weight: bold;
     }
 
-    button:hover {
-      opacity: .9;
+    button:hover { opacity: .9; }
+
+    button:disabled {
+      opacity: .5;
+      cursor: not-allowed;
     }
 
-    .logout {
-      background: #555;
-    }
+    .logout { background: #555; }
+    .danger { background: #d9534f; }
+    .success { background: #198754; }
+    .warning { background: #d89b00; }
 
     .message {
       margin-top: 10px;
       font-weight: bold;
+      white-space: pre-wrap;
+    }
+
+    .muted {
+      color: #777;
+      font-size: 13px;
     }
 
     .product-row {
@@ -91,18 +98,21 @@
       margin-top: 3px;
     }
 
-    #adminArea {
-      display: none;
-    }
+    #adminArea { display: none; }
 
-    .wallet-actions {
+    .wallet-actions,
+    .stock-actions,
+    .filter-grid {
       display: grid;
-      grid-template-columns: 1fr 1fr;
       gap: 8px;
     }
 
-    .debit-button {
-      background: #d9534f;
+    .wallet-actions {
+      grid-template-columns: 1fr 1fr;
+    }
+
+    .filter-grid {
+      grid-template-columns: 1fr 1fr;
     }
 
     .wallet-history-row {
@@ -125,6 +135,108 @@
       color: #777;
       margin-top: 4px;
     }
+
+    .stock-detail-row {
+      border: 1px solid #e7e7e7;
+      border-radius: 10px;
+      padding: 12px;
+      margin-top: 10px;
+      background: #fafafa;
+    }
+
+    .stock-detail-head {
+      display: flex;
+      justify-content: space-between;
+      gap: 10px;
+      align-items: flex-start;
+    }
+
+    .stock-detail-data {
+      background: #fff;
+      padding: 10px;
+      border: 1px solid #e6e6e6;
+      border-radius: 7px;
+      margin: 8px 0;
+      word-break: break-word;
+      white-space: pre-wrap;
+      font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+      font-size: 13px;
+    }
+
+    .status-badge {
+      display: inline-block;
+      padding: 4px 8px;
+      border-radius: 999px;
+      font-size: 12px;
+      font-weight: bold;
+      white-space: nowrap;
+    }
+
+    .status-available {
+      background: #dff3e7;
+      color: #146c43;
+    }
+
+    .status-reserved {
+      background: #fff2cc;
+      color: #8a6400;
+    }
+
+    .status-sold {
+      background: #eee;
+      color: #555;
+    }
+
+    .stock-actions {
+      grid-template-columns: 1fr 1fr;
+      margin-top: 6px;
+    }
+
+    .summary-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 8px;
+      margin-top: 10px;
+    }
+
+    .summary-card {
+      padding: 10px;
+      border-radius: 10px;
+      background: #f7f7f7;
+      text-align: center;
+      border: 1px solid #ececec;
+    }
+
+    .summary-number {
+      font-size: 22px;
+      font-weight: bold;
+    }
+
+    .toolbar {
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 8px;
+      align-items: center;
+    }
+
+    .toolbar button {
+      width: auto;
+      min-width: 110px;
+    }
+
+    @media (max-width: 560px) {
+      .filter-grid,
+      .wallet-actions,
+      .stock-actions,
+      .summary-grid,
+      .toolbar {
+        grid-template-columns: 1fr;
+      }
+
+      .toolbar button {
+        width: 100%;
+      }
+    }
   </style>
 </head>
 
@@ -140,7 +252,6 @@
     <input id="password" type="password" placeholder="Mật khẩu">
 
     <button onclick="login()">ĐĂNG NHẬP</button>
-
     <div class="message" id="loginMessage"></div>
   </div>
 
@@ -159,10 +270,9 @@
 
       <input id="productName" placeholder="Tên sản phẩm, ví dụ: ChatGPT">
       <input id="productSlug" placeholder="Mã sản phẩm, ví dụ: chatgpt">
-      <input id="productPrice" type="number" placeholder="Giá bán, ví dụ: 100000">
+      <input id="productPrice" type="number" min="1" placeholder="Giá bán, ví dụ: 100000">
 
       <button onclick="addProduct()">THÊM SẢN PHẨM</button>
-
       <div class="message" id="productMessage"></div>
     </div>
 
@@ -175,20 +285,72 @@
       <textarea id="stockData" placeholder="Mỗi dòng là 1 sản phẩm.
 
 Ví dụ:
-
 taikhoan1|matkhau1
 taikhoan2|matkhau2
 taikhoan3|matkhau3"></textarea>
 
       <button onclick="importStock()">NHẬP VÀO KHO</button>
-
       <div class="message" id="stockMessage"></div>
     </div>
 
     <!-- TỒN KHO -->
     <div class="box">
-      <h3>📊 Tồn kho hiện tại</h3>
+      <div class="toolbar">
+        <h3 style="margin:0;">📊 Tồn kho hiện tại</h3>
+        <button onclick="refreshAll()">↻ Làm mới</button>
+      </div>
+
       <div id="inventory">Đang tải...</div>
+
+      <div class="summary-grid">
+        <div class="summary-card">
+          <div class="summary-number" id="sumAvailable">0</div>
+          <div class="muted">Còn hàng</div>
+        </div>
+
+        <div class="summary-card">
+          <div class="summary-number" id="sumReserved">0</div>
+          <div class="muted">Đang giữ</div>
+        </div>
+
+        <div class="summary-card">
+          <div class="summary-number" id="sumSold">0</div>
+          <div class="muted">Đã bán</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- CHI TIẾT HÀNG TRONG KHO -->
+    <div class="box">
+      <h3>🧾 Chi tiết hàng trong kho</h3>
+
+      <div class="filter-grid">
+        <select id="stockListProduct" onchange="loadStockItems()">
+          <option value="">Tất cả sản phẩm</option>
+        </select>
+
+        <select id="stockStatus" onchange="loadStockItems()">
+          <option value="">Tất cả trạng thái</option>
+          <option value="available">Còn hàng</option>
+          <option value="reserved">Đang giữ</option>
+          <option value="sold">Đã bán</option>
+        </select>
+      </div>
+
+      <input
+        id="stockSearch"
+        placeholder="Tìm tài khoản / key / nội dung..."
+        oninput="debouncedStockSearch()"
+      >
+
+      <div class="muted">
+        Chỉ hàng còn trạng thái <b>available</b> mới được sửa hoặc xóa.
+        Hàng đang giữ hoặc đã bán chỉ được xem.
+      </div>
+
+      <div id="stockItemList" style="margin-top:10px;">
+        Đang tải...
+      </div>
     </div>
 
     <!-- QUẢN LÝ VÍ -->
@@ -223,8 +385,8 @@ taikhoan3|matkhau3"></textarea>
         >
 
         <div class="wallet-actions">
-          <button onclick="adjustWallet('credit')">+ CỘNG TIỀN</button>
-          <button class="debit-button" onclick="adjustWallet('debit')">- TRỪ TIỀN</button>
+          <button class="success" onclick="adjustWallet('credit')">+ CỘNG TIỀN</button>
+          <button class="danger" onclick="adjustWallet('debit')">- TRỪ TIỀN</button>
         </div>
 
         <div class="message" id="walletMessage"></div>
@@ -238,6 +400,7 @@ taikhoan3|matkhau3"></textarea>
 
   </div>
 </div>
+
 
 <script>
 /* ==========================
@@ -257,7 +420,50 @@ const sb = supabase.createClient(
 
 
 /* ==========================
-   KIỂM TRA LOGIN
+   TRẠNG THÁI
+========================== */
+
+let currentWalletUserId = null;
+let stockSearchTimer = null;
+
+
+/* ==========================
+   TIỆN ÍCH
+========================== */
+
+function formatMoney(number) {
+  return new Intl.NumberFormat("vi-VN")
+    .format(Number(number) || 0) + "đ";
+}
+
+function escapeHtml(value) {
+  const div = document.createElement("div");
+  div.textContent = String(value ?? "");
+  return div.innerHTML;
+}
+
+function formatDate(value) {
+  if (!value) return "";
+  return new Date(value).toLocaleString("vi-VN");
+}
+
+function statusLabel(status) {
+  if (status === "available") return "Còn hàng";
+  if (status === "reserved") return "Đang giữ";
+  if (status === "sold") return "Đã bán";
+  return status || "Không rõ";
+}
+
+function statusClass(status) {
+  if (status === "available") return "status-available";
+  if (status === "reserved") return "status-reserved";
+  if (status === "sold") return "status-sold";
+  return "";
+}
+
+
+/* ==========================
+   LOGIN
 ========================== */
 
 async function checkLogin() {
@@ -278,19 +484,13 @@ function showAdmin(user) {
   document.getElementById("adminEmail").innerText =
     "Đang đăng nhập: " + user.email;
 
-  loadProducts();
-  loadInventory();
+  refreshAll();
 }
 
 function showLogin() {
   document.getElementById("loginBox").style.display = "block";
   document.getElementById("adminArea").style.display = "none";
 }
-
-
-/* ==========================
-   LOGIN
-========================== */
 
 async function login() {
   const email =
@@ -315,14 +515,22 @@ async function login() {
   showAdmin(data.user);
 }
 
-
-/* ==========================
-   LOGOUT
-========================== */
-
 async function logout() {
   await sb.auth.signOut();
   showLogin();
+}
+
+
+/* ==========================
+   LÀM MỚI TOÀN BỘ
+========================== */
+
+async function refreshAll() {
+  await loadProducts();
+  await loadInventory();
+  await loadStockProductFilter();
+  await loadStockItems();
+  await loadStockSummary();
 }
 
 
@@ -372,13 +580,12 @@ async function addProduct() {
   document.getElementById("productSlug").value = "";
   document.getElementById("productPrice").value = "";
 
-  await loadProducts();
-  await loadInventory();
+  await refreshAll();
 }
 
 
 /* ==========================
-   LOAD DANH SÁCH SẢN PHẨM
+   LOAD SẢN PHẨM
 ========================== */
 
 async function loadProducts() {
@@ -412,8 +619,7 @@ async function loadProducts() {
 
 
 /* ==========================
-   NHẬP HÀNG HÀNG LOẠT
-   + TỰ LOẠI TRÙNG
+   NHẬP HÀNG + CHỐNG TRÙNG
 ========================== */
 
 async function importStock() {
@@ -429,8 +635,8 @@ async function importStock() {
       .map(line => line.trim())
       .filter(line => line.length > 0);
 
-  // Loại các dòng trùng ngay trong lần paste hiện tại
-  const lines = [...new Set(rawLines)];
+  const lines =
+    [...new Set(rawLines)];
 
   if (!productId) {
     alert("Hãy chọn sản phẩm.");
@@ -464,22 +670,30 @@ async function importStock() {
     return;
   }
 
-  const added = data ? data.length : 0;
-  const skipped = rawLines.length - added;
+  const added =
+    data ? data.length : 0;
+
+  const duplicateInPaste =
+    rawLines.length - lines.length;
+
+  const duplicateExisting =
+    lines.length - added;
 
   document.getElementById("stockMessage").innerText =
-    "✅ Đã thêm " + added +
-    " hàng mới. Bỏ qua " +
-    skipped + " hàng trùng.";
+    "✅ Đã thêm " + added + " hàng mới.\n" +
+    "Bỏ qua " + duplicateInPaste + " dòng trùng trong lần dán.\n" +
+    "Bỏ qua " + duplicateExisting + " hàng đã có sẵn trong kho.";
 
   document.getElementById("stockData").value = "";
 
   await loadInventory();
+  await loadStockItems();
+  await loadStockSummary();
 }
 
 
 /* ==========================
-   XEM TỒN KHO
+   TỒN KHO TỔNG HỢP
 ========================== */
 
 async function loadInventory() {
@@ -526,26 +740,390 @@ async function loadInventory() {
 
 
 /* ==========================
-   TIỆN ÍCH
+   THỐNG KÊ TRẠNG THÁI KHO
 ========================== */
 
-function formatMoney(number) {
-  return new Intl.NumberFormat("vi-VN")
-    .format(Number(number) || 0) + "đ";
+async function loadStockSummary() {
+  const { data, error } =
+    await sb
+      .from("stock_items")
+      .select("status");
+
+  if (error) {
+    console.error(error);
+    return;
+  }
+
+  let available = 0;
+  let reserved = 0;
+  let sold = 0;
+
+  data.forEach(item => {
+    if (item.status === "available") available++;
+    if (item.status === "reserved") reserved++;
+    if (item.status === "sold") sold++;
+  });
+
+  document.getElementById("sumAvailable").innerText = available;
+  document.getElementById("sumReserved").innerText = reserved;
+  document.getElementById("sumSold").innerText = sold;
 }
 
-function escapeHtml(value) {
-  const div = document.createElement("div");
-  div.textContent = String(value ?? "");
-  return div.innerHTML;
+
+/* ==========================
+   FILTER SẢN PHẨM CHO CHI TIẾT KHO
+========================== */
+
+async function loadStockProductFilter() {
+  const { data, error } =
+    await sb
+      .from("products")
+      .select("id,name")
+      .order("name");
+
+  if (error) {
+    console.error(error);
+    return;
+  }
+
+  const select =
+    document.getElementById("stockListProduct");
+
+  const oldValue =
+    select.value;
+
+  select.innerHTML =
+    `<option value="">Tất cả sản phẩm</option>`;
+
+  data.forEach(product => {
+    const option =
+      document.createElement("option");
+
+    option.value =
+      product.id;
+
+    option.textContent =
+      product.name;
+
+    select.appendChild(option);
+  });
+
+  if (
+    oldValue &&
+    [...select.options].some(
+      option => option.value === oldValue
+    )
+  ) {
+    select.value = oldValue;
+  }
+}
+
+
+/* ==========================
+   CHI TIẾT HÀNG TRONG KHO
+========================== */
+
+function debouncedStockSearch() {
+  clearTimeout(stockSearchTimer);
+
+  stockSearchTimer =
+    setTimeout(
+      loadStockItems,
+      300
+    );
+}
+
+async function loadStockItems() {
+  const container =
+    document.getElementById("stockItemList");
+
+  container.innerHTML =
+    "Đang tải...";
+
+  const productId =
+    document.getElementById("stockListProduct").value;
+
+  const status =
+    document.getElementById("stockStatus").value;
+
+  const keyword =
+    document.getElementById("stockSearch").value.trim();
+
+  let query =
+    sb
+      .from("stock_items")
+      .select(`
+        id,
+        product_id,
+        delivery_data,
+        status,
+        created_at,
+        sold_at,
+        products (
+          name
+        )
+      `)
+      .order(
+        "created_at",
+        {
+          ascending: false
+        }
+      )
+      .limit(300);
+
+  if (productId) {
+    query =
+      query.eq(
+        "product_id",
+        Number(productId)
+      );
+  }
+
+  if (status) {
+    query =
+      query.eq(
+        "status",
+        status
+      );
+  }
+
+  if (keyword) {
+    query =
+      query.ilike(
+        "delivery_data",
+        "%" + keyword + "%"
+      );
+  }
+
+  const { data, error } =
+    await query;
+
+  if (error) {
+    container.innerText =
+      "❌ " + error.message;
+    return;
+  }
+
+  if (!data || data.length === 0) {
+    container.innerHTML =
+      "<div>Không có hàng phù hợp.</div>";
+    return;
+  }
+
+  container.innerHTML = "";
+
+  data.forEach(item => {
+    const row =
+      document.createElement("div");
+
+    row.className =
+      "stock-detail-row";
+
+    const editable =
+      item.status === "available";
+
+    const productName =
+      item.products?.name ||
+      "Không rõ sản phẩm";
+
+    const createdAt =
+      formatDate(item.created_at);
+
+    const soldAt =
+      item.sold_at
+        ? formatDate(item.sold_at)
+        : "";
+
+    row.innerHTML = `
+      <div class="stock-detail-head">
+        <div>
+          <strong>${escapeHtml(productName)}</strong>
+          <div class="muted">
+            Nhập: ${escapeHtml(createdAt)}
+          </div>
+          ${
+            soldAt
+              ? `<div class="muted">Bán: ${escapeHtml(soldAt)}</div>`
+              : ""
+          }
+        </div>
+
+        <span class="status-badge ${statusClass(item.status)}">
+          ${escapeHtml(statusLabel(item.status))}
+        </span>
+      </div>
+
+      <div
+        class="stock-detail-data"
+        id="stock-data-${item.id}"
+      >${escapeHtml(item.delivery_data)}</div>
+
+      ${
+        editable
+          ? `
+            <div class="stock-actions">
+              <button
+                onclick="editStockItem('${item.id}')"
+              >
+                ✏️ Sửa
+              </button>
+
+              <button
+                class="danger"
+                onclick="deleteStockItem('${item.id}')"
+              >
+                🗑 Xóa
+              </button>
+            </div>
+          `
+          : `
+            <div class="muted">
+              Hàng này đang giữ hoặc đã bán nên không cho sửa/xóa.
+            </div>
+          `
+      }
+    `;
+
+    container.appendChild(row);
+  });
+}
+
+
+/* ==========================
+   SỬA HÀNG
+========================== */
+
+async function editStockItem(id) {
+  const element =
+    document.getElementById(
+      "stock-data-" + id
+    );
+
+  if (!element) {
+    return;
+  }
+
+  const oldValue =
+    element.textContent;
+
+  const newValue =
+    prompt(
+      "Sửa nội dung hàng:",
+      oldValue
+    );
+
+  if (newValue === null) {
+    return;
+  }
+
+  const value =
+    newValue.trim();
+
+  if (!value) {
+    alert(
+      "Nội dung không được để trống."
+    );
+    return;
+  }
+
+  if (value === oldValue.trim()) {
+    return;
+  }
+
+  const ok =
+    confirm(
+      "Bạn chắc chắn muốn sửa hàng này?"
+    );
+
+  if (!ok) {
+    return;
+  }
+
+  const { data, error } =
+    await sb
+      .from("stock_items")
+      .update({
+        delivery_data: value
+      })
+      .eq("id", id)
+      .eq("status", "available")
+      .select("id");
+
+  if (error) {
+    alert(
+      "❌ Không sửa được.\n\n" +
+      error.message
+    );
+    return;
+  }
+
+  if (!data || data.length === 0) {
+    alert(
+      "❌ Hàng không còn ở trạng thái available nên không thể sửa."
+    );
+    await loadStockItems();
+    return;
+  }
+
+  alert(
+    "✅ Đã sửa hàng."
+  );
+
+  await loadStockItems();
+}
+
+
+/* ==========================
+   XÓA HÀNG
+========================== */
+
+async function deleteStockItem(id) {
+  const ok =
+    confirm(
+      "Bạn chắc chắn muốn xóa hàng này?\n\nChỉ hàng còn 'available' mới được xóa."
+    );
+
+  if (!ok) {
+    return;
+  }
+
+  const { data, error } =
+    await sb
+      .from("stock_items")
+      .delete()
+      .eq("id", id)
+      .eq("status", "available")
+      .select("id");
+
+  if (error) {
+    alert(
+      "❌ Không xóa được.\n\n" +
+      error.message
+    );
+    return;
+  }
+
+  if (!data || data.length === 0) {
+    alert(
+      "❌ Hàng không còn ở trạng thái available nên không thể xóa."
+    );
+    await loadStockItems();
+    return;
+  }
+
+  alert(
+    "✅ Đã xóa hàng."
+  );
+
+  await loadInventory();
+  await loadStockItems();
+  await loadStockSummary();
 }
 
 
 /* ==========================
    QUẢN LÝ VÍ
 ========================== */
-
-let currentWalletUserId = null;
 
 async function loadWallet() {
   const userId =
@@ -564,8 +1142,10 @@ async function loadWallet() {
   currentWalletUserId =
     Number(userId);
 
-  if (!Number.isSafeInteger(currentWalletUserId) ||
-      currentWalletUserId <= 0) {
+  if (
+    !Number.isSafeInteger(currentWalletUserId) ||
+    currentWalletUserId <= 0
+  ) {
     alert("Telegram ID không hợp lệ.");
     return;
   }
@@ -577,7 +1157,10 @@ async function loadWallet() {
     await sb
       .from("wallets")
       .select("telegram_user_id,balance")
-      .eq("telegram_user_id", currentWalletUserId)
+      .eq(
+        "telegram_user_id",
+        currentWalletUserId
+      )
       .maybeSingle();
 
   if (error) {
@@ -589,7 +1172,11 @@ async function loadWallet() {
   document.getElementById("walletInfo").style.display = "block";
 
   document.getElementById("walletBalance").innerText =
-    formatMoney(wallet ? wallet.balance : 0);
+    formatMoney(
+      wallet
+        ? wallet.balance
+        : 0
+    );
 
   await loadWalletHistory();
 }
@@ -606,12 +1193,17 @@ async function adjustWallet(type) {
   }
 
   const rawAmount =
-    Number(document.getElementById("walletAmount").value);
+    Number(
+      document.getElementById("walletAmount").value
+    );
 
   const reason =
     document.getElementById("walletReason").value.trim();
 
-  if (!Number.isFinite(rawAmount) || rawAmount <= 0) {
+  if (
+    !Number.isFinite(rawAmount) ||
+    rawAmount <= 0
+  ) {
     alert("Số tiền phải lớn hơn 0.");
     return;
   }
@@ -652,9 +1244,14 @@ async function adjustWallet(type) {
     await sb.rpc(
       "admin_adjust_wallet",
       {
-        p_telegram_user_id: currentWalletUserId,
-        p_amount: amount,
-        p_reason: reason
+        p_telegram_user_id:
+          currentWalletUserId,
+
+        p_amount:
+          amount,
+
+        p_reason:
+          reason
       }
     );
 
@@ -735,11 +1332,14 @@ async function loadWalletHistory() {
       tx.type === "credit";
 
     const sign =
-      isCredit ? "+" : "-";
+      isCredit
+        ? "+"
+        : "-";
 
     const date =
-      new Date(tx.created_at)
-        .toLocaleString("vi-VN");
+      formatDate(
+        tx.created_at
+      );
 
     row.innerHTML = `
       <div class="${
@@ -751,7 +1351,10 @@ async function loadWalletHistory() {
       </div>
 
       <div>
-        ${escapeHtml(tx.reason || "Không có ghi chú")}
+        ${escapeHtml(
+          tx.reason ||
+          "Không có ghi chú"
+        )}
       </div>
 
       <div class="wallet-date">
