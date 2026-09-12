@@ -402,11 +402,14 @@ async function addProduct() {
 
     }
 
-
-    const { error } =
-        await sb
-        .from("products")
-        .insert({
+const { data, error } =
+    await sb
+    .from("stock_items")
+    .upsert(items, {
+        onConflict: "product_id,delivery_data",
+        ignoreDuplicates: true
+    })
+    .select();
 
             name: name,
 
@@ -532,11 +535,14 @@ async function importStock() {
         ).value;
 
 
-    const lines =
-        text
-        .split("\n")
-        .map(line => line.trim())
-        .filter(line => line.length > 0);
+const rawLines =
+    text
+    .split("\n")
+    .map(line => line.trim())
+    .filter(line => line.length > 0);
+
+// Tự loại trùng ngay trong nội dung bạn vừa paste
+const lines = [...new Set(rawLines)];
 
 
     if (!productId) {
@@ -594,12 +600,15 @@ async function importStock() {
     }
 
 
-    document.getElementById(
-        "stockMessage"
-    ).innerText =
-        "✅ Đã nhập " +
-        lines.length +
-        " sản phẩm vào kho.";
+const added = data ? data.length : 0;
+const skipped = rawLines.length - added;
+
+document.getElementById(
+    "stockMessage"
+).innerText =
+    "✅ Đã thêm " + added +
+    " hàng mới. Bỏ qua " +
+    skipped + " hàng trùng.";
 
 
     document.getElementById(
