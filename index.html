@@ -1,20 +1,346 @@
 <!DOCTYPE html>
 <html lang="vi">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Telegram Mini App</title>
+<meta charset="UTF-8">
+<meta name="viewport"
+      content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+
+<title>Store</title>
+
+<script src="https://telegram.org/js/telegram-web-app.js"></script>
+
+<style>
+* {
+    box-sizing: border-box;
+}
+
+body {
+    margin: 0;
+    padding: 7px;
+    font-family: Arial, sans-serif;
+    background: #88ad73;
+    color: white;
+}
+
+.grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 5px;
+}
+
+.product {
+    height: 40px;
+
+    display: flex;
+    align-items: center;
+    gap: 7px;
+
+    padding: 5px 7px;
+
+    background: rgba(70, 115, 58, 0.45);
+
+    border: 1px solid rgba(255,255,255,0.10);
+    border-radius: 8px;
+
+    color: white;
+    font-size: 14px;
+
+    cursor: pointer;
+
+    overflow: hidden;
+}
+
+.product:active {
+    transform: scale(0.97);
+    background: rgba(60,100,50,0.6);
+}
+
+.product img {
+    width: 24px;
+    height: 24px;
+    object-fit: contain;
+    flex-shrink: 0;
+}
+
+.product-name {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+</style>
+
 </head>
 
-<body style="
-  margin:0;
-  font-family:Arial;
-  background:#8daf78;
-  color:white;
-  text-align:center;
-  padding-top:80px;
-">
-  <h1>Mini App đã chạy 🎉</h1>
-  <p>Telegram Store của tôi</p>
+<body>
+
+<div class="grid" id="productGrid"></div>
+
+<script>
+
+const tg = window.Telegram.WebApp;
+
+tg.ready();
+tg.expand();
+
+
+const products = [
+
+{
+ name: "Elsa Speak",
+ stock: 20,
+ icon: "https://www.google.com/s2/favicons?domain=elsaspeak.com&sz=128"
+},
+
+{
+ name: "Fam GG1",
+ stock: 10,
+ icon: "https://cdn.simpleicons.org/googleone"
+},
+
+{
+ name: "Fam Office",
+ stock: 27,
+ icon: "https://cdn.simpleicons.org/microsoft365"
+},
+
+{
+ name: "Gamma AI",
+ stock: 29,
+ icon: "https://www.google.com/s2/favicons?domain=gamma.app&sz=128"
+},
+
+{
+ name: "Gemini Ultra",
+ stock: 55,
+ icon: "https://cdn.simpleicons.org/googlegemini"
+},
+
+{
+ name: "Kahoot",
+ stock: 30,
+ icon: "https://cdn.simpleicons.org/kahoot"
+},
+
+{
+ name: "NordVPN",
+ stock: 9,
+ icon: "https://cdn.simpleicons.org/nordvpn"
+},
+
+{
+ name: "Proton VPN",
+ stock: 4,
+ icon: "https://cdn.simpleicons.org/protonvpn"
+},
+
+{
+ name: "Quizlet",
+ stock: 31,
+ icon: "https://cdn.simpleicons.org/quizlet"
+},
+
+{
+ name: "Spotify",
+ stock: 26,
+ icon: "https://cdn.simpleicons.org/spotify"
+},
+
+{
+ name: "Vietmap",
+ stock: 8,
+ icon: "https://www.google.com/s2/favicons?domain=vietmap.vn&sz=128"
+},
+
+{
+ name: "Wink Swip",
+ stock: 5,
+ icon: "https://www.google.com/s2/favicons?domain=wink.ai&sz=128"
+},
+
+{
+ name: "Youtube",
+ stock: 55,
+ icon: "https://cdn.simpleicons.org/youtube"
+},
+
+{
+ name: "Duolingo",
+ stock: 50,
+ icon: "https://cdn.simpleicons.org/duolingo"
+},
+
+{
+ name: "Locket",
+ stock: 18,
+ icon: "https://www.google.com/s2/favicons?domain=locket.camera&sz=128"
+},
+
+{
+ name: "Youku",
+ stock: 14,
+ icon: "https://www.google.com/s2/favicons?domain=youku.com&sz=128"
+},
+
+{
+ name: "Coursera",
+ stock: 48,
+ icon: "https://cdn.simpleicons.org/coursera"
+},
+
+{
+ name: "Hailou AI",
+ stock: 20,
+ icon: "https://www.google.com/s2/favicons?domain=hailuoai.video&sz=128"
+},
+
+{
+ name: "Notion",
+ stock: 49,
+ icon: "https://cdn.simpleicons.org/notion"
+},
+
+{
+ name: "Grok",
+ stock: 29,
+ icon: "https://cdn.simpleicons.org/x"
+},
+
+{
+ name: "ChatGPT",
+ stock: 69,
+ icon: "https://cdn.simpleicons.org/openai"
+},
+
+{
+ name: "Veo3 Ultra",
+ stock: 56,
+ icon: "https://cdn.simpleicons.org/google"
+},
+
+{
+ name: "Slot Gemini",
+ stock: 6,
+ icon: "https://cdn.simpleicons.org/googlegemini"
+},
+
+{
+ name: "Suno",
+ stock: 0,
+ icon: "https://www.google.com/s2/favicons?domain=suno.com&sz=128"
+},
+
+{
+ name: "Copilot",
+ stock: 86,
+ icon: "https://cdn.simpleicons.org/githubcopilot"
+},
+
+{
+ name: "Netflix",
+ stock: 6,
+ icon: "https://cdn.simpleicons.org/netflix"
+},
+
+{
+ name: "Office",
+ stock: 21,
+ icon: "https://cdn.simpleicons.org/microsoft"
+},
+
+{
+ name: "Zoom",
+ stock: 99,
+ icon: "https://cdn.simpleicons.org/zoom"
+},
+
+{
+ name: "Gemini Pro",
+ stock: 41,
+ icon: "https://cdn.simpleicons.org/googlegemini"
+},
+
+{
+ name: "Google One",
+ stock: 7,
+ icon: "https://cdn.simpleicons.org/googleone"
+},
+
+{
+ name: "Adobe",
+ stock: 12,
+ icon: "https://cdn.simpleicons.org/adobe"
+},
+
+{
+ name: "Capcut",
+ stock: 178,
+ icon: "https://cdn.simpleicons.org/capcut"
+},
+
+{
+ name: "Express",
+ stock: 15,
+ icon: "https://cdn.simpleicons.org/adobeexpress"
+},
+
+{
+ name: "HMA",
+ stock: 11,
+ icon: "https://www.google.com/s2/favicons?domain=hidemyass.com&sz=128"
+}
+
+];
+
+
+const grid = document.getElementById("productGrid");
+
+
+products.forEach(product => {
+
+    const item = document.createElement("div");
+
+    item.className = "product";
+
+    item.innerHTML = `
+        <img src="${product.icon}">
+        <div class="product-name">
+            ${product.name} (${product.stock})
+        </div>
+    `;
+
+
+    item.onclick = () => {
+
+        tg.showPopup({
+
+            title: product.name,
+
+            message:
+            "Số lượng hiện có: " +
+            product.stock,
+
+            buttons: [
+                {
+                    id: "buy",
+                    type: "default",
+                    text: "Chọn"
+                },
+
+                {
+                    type: "cancel"
+                }
+            ]
+
+        });
+
+    };
+
+
+    grid.appendChild(item);
+
+});
+
+</script>
+
 </body>
 </html>
