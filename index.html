@@ -188,32 +188,38 @@ async function loadProducts() {
 
         item.onclick = () => {
 
-            tg.showPopup({
+    tg.showPopup(
+        {
+            title: product.name,
 
-                title: product.name,
+            message:
+                "Giá: " +
+                formatMoney(product.price) +
+                "\n\nSố lượng còn: " +
+                product.stock,
 
-                message:
-                    "Giá: " +
-                    formatMoney(product.price) +
-                    "\n\nSố lượng còn: " +
-                    product.stock,
+            buttons: [
+                {
+                    id: "buy",
+                    type: "default",
+                    text: "Mua"
+                },
+                {
+                    type: "cancel"
+                }
+            ]
+        },
 
-                buttons: [
-                    {
-                        id: "buy",
-                        type: "default",
-                        text: "Mua"
-                    },
+        async function(buttonId) {
 
-                    {
-                        type: "cancel"
-                    }
-                ]
+            if (buttonId === "buy") {
+                await createOrder(product);
+            }
 
-            });
+        }
+    );
 
-        };
-
+};
 
         grid.appendChild(item);
 
@@ -227,6 +233,98 @@ async function loadProducts() {
 ========================= */
 
 loadProducts();
+      async function createOrder(product) {
+
+    if (!tg.initData) {
+        tg.showAlert(
+            "Hãy mở cửa hàng trực tiếp từ bot Telegram."
+        );
+        return;
+    }
+
+    try {
+
+        const response = await fetch(
+            "https://xkepazqrzfjvgkijnfrv.supabase.co/functions/v1/create-order",
+            {
+                method: "POST",
+
+                headers: {
+                    "Content-Type": "application/json"
+                },
+
+                body: JSON.stringify({
+                    product_id: product.id,
+                    init_data: tg.initData
+                })
+            }
+        );
+
+
+        const result =
+            await response.json();
+
+
+        if (
+            !response.ok ||
+            !result.success
+        ) {
+
+            throw new Error(
+                result.error ||
+                "Không tạo được đơn hàng"
+            );
+
+        }
+
+
+        const order =
+            result.order;
+
+
+        tg.showPopup({
+
+            title:
+                "✅ Đã tạo đơn",
+
+            message:
+                "Sản phẩm: " +
+                order.product +
+
+                "\n\nSố tiền: " +
+                formatMoney(order.amount) +
+
+                "\n\nMã đơn: " +
+                order.code +
+
+                "\n\nĐơn được giữ trong 5 phút.",
+
+            buttons: [
+                {
+                    type: "ok"
+                }
+            ]
+
+        });
+
+
+        // cập nhật lại tồn kho
+        await loadProducts();
+
+    }
+
+    catch (error) {
+
+        console.error(error);
+
+        tg.showAlert(
+            "❌ " +
+            error.message
+        );
+
+    }
+
+}
 
 </script>
 
