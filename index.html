@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="vi">
+      <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <head>
 <meta charset="UTF-8">
 <meta name="viewport"
@@ -92,269 +93,140 @@ body {
 <div class="grid" id="productGrid"></div>
 
 <script>
-
 const tg = window.Telegram.WebApp;
-
 tg.ready();
 tg.expand();
 
+/* =========================
+   KẾT NỐI SUPABASE
+========================= */
 
-const products = [
+const SUPABASE_URL = "https://xkepazqrzfjvgkijnfrv.supabase.co";
 
-{
- name: "Elsa Speak",
- stock: 20,
- icon: "https://www.google.com/s2/favicons?domain=elsaspeak.com&sz=128"
-},
+const SUPABASE_KEY = "sb_publishable_iWGggP4RFF-MeZA9EaY_WA_u47nCBUg";
 
-{
- name: "Fam GG1",
- stock: 10,
- icon: "https://cdn.simpleicons.org/googleone"
-},
+const sb = window.supabase.createClient(
+    SUPABASE_URL,
+    SUPABASE_KEY
+);
 
-{
- name: "Fam Office",
- stock: 27,
- icon: "https://cdn.simpleicons.org/microsoft365"
-},
 
-{
- name: "Gamma AI",
- stock: 29,
- icon: "https://www.google.com/s2/favicons?domain=gamma.app&sz=128"
-},
+/* =========================
+   ICON CỦA SẢN PHẨM
+========================= */
 
-{
- name: "Gemini Ultra",
- stock: 55,
- icon: "https://cdn.simpleicons.org/googlegemini"
-},
+const icons = {
+    chatgpt: "icons/chatgpt.png",
+    spotify: "icons/spotify.png",
+    netflix: "icons/netflix.png"
+};
 
-{
- name: "Kahoot",
- stock: 30,
- icon: "https://cdn.simpleicons.org/kahoot"
-},
 
-{
- name: "NordVPN",
- stock: 9,
- icon: "https://cdn.simpleicons.org/nordvpn"
-},
+/* =========================
+   ĐỊNH DẠNG TIỀN
+========================= */
 
-{
- name: "Proton VPN",
- stock: 4,
- icon: "https://cdn.simpleicons.org/protonvpn"
-},
-
-{
- name: "Quizlet",
- stock: 31,
- icon: "https://cdn.simpleicons.org/quizlet"
-},
-
-{
-  name: "Spotify",
-  stock: 26,
-  icon: "icons/spotify.png"
-},
-
-{
- name: "Vietmap",
- stock: 8,
- icon: "https://www.google.com/s2/favicons?domain=vietmap.vn&sz=128"
-},
-
-{
- name: "Wink Swip",
- stock: 5,
- icon: "https://www.google.com/s2/favicons?domain=wink.ai&sz=128"
-},
-
-{
- name: "Youtube",
- stock: 55,
- icon: "https://cdn.simpleicons.org/youtube"
-},
-
-{
- name: "Duolingo",
- stock: 50,
- icon: "https://cdn.simpleicons.org/duolingo"
-},
-
-{
- name: "Locket",
- stock: 18,
- icon: "https://www.google.com/s2/favicons?domain=locket.camera&sz=128"
-},
-
-{
- name: "Youku",
- stock: 14,
- icon: "https://www.google.com/s2/favicons?domain=youku.com&sz=128"
-},
-
-{
- name: "Coursera",
- stock: 48,
- icon: "https://cdn.simpleicons.org/coursera"
-},
-
-{
- name: "Hailou AI",
- stock: 20,
- icon: "https://www.google.com/s2/favicons?domain=hailuoai.video&sz=128"
-},
-
-{
- name: "Notion",
- stock: 49,
- icon: "https://cdn.simpleicons.org/notion"
-},
-
-{
- name: "Grok",
- stock: 29,
- icon: "https://cdn.simpleicons.org/x"
-},
-
-{
-  name: "ChatGPT",
-  stock: 69,
-  icon: "icons/chatgpt.png"
-},
-
-{
- name: "Veo3 Ultra",
- stock: 56,
- icon: "https://cdn.simpleicons.org/google"
-},
-
-{
- name: "Slot Gemini",
- stock: 6,
- icon: "https://cdn.simpleicons.org/googlegemini"
-},
-
-{
- name: "Suno",
- stock: 0,
- icon: "https://www.google.com/s2/favicons?domain=suno.com&sz=128"
-},
-
-{
- name: "Copilot",
- stock: 86,
- icon: "https://cdn.simpleicons.org/githubcopilot"
-},
-
-{
-  name: "Netflix",
-  stock: 6,
-  icon: "icons/netflix.png"
-},
-
-{
- name: "Office",
- stock: 21,
- icon: "https://cdn.simpleicons.org/microsoft"
-},
-
-{
- name: "Zoom",
- stock: 99,
- icon: "https://cdn.simpleicons.org/zoom"
-},
-
-{
- name: "Gemini Pro",
- stock: 41,
- icon: "https://cdn.simpleicons.org/googlegemini"
-},
-
-{
- name: "Google One",
- stock: 7,
- icon: "https://cdn.simpleicons.org/googleone"
-},
-
-{
- name: "Adobe",
- stock: 12,
- icon: "https://cdn.simpleicons.org/adobe"
-},
-
-{
- name: "Capcut",
- stock: 178,
- icon: "https://cdn.simpleicons.org/capcut"
-},
-
-{
- name: "Express",
- stock: 15,
- icon: "https://cdn.simpleicons.org/adobeexpress"
-},
-
-{
- name: "HMA",
- stock: 11,
- icon: "https://www.google.com/s2/favicons?domain=hidemyass.com&sz=128"
+function formatMoney(amount) {
+    return new Intl.NumberFormat("vi-VN").format(amount) + "đ";
 }
 
-];
 
+/* =========================
+   LẤY SẢN PHẨM TỪ SUPABASE
+========================= */
 
-const grid = document.getElementById("productGrid");
+async function loadProducts() {
 
+    const grid = document.getElementById("productGrid");
 
-products.forEach(product => {
-
-    const item = document.createElement("div");
-
-    item.className = "product";
-
-    item.innerHTML = `
-        <img src="${product.icon}">
-        <div class="product-name">
-            ${product.name} (${product.stock})
+    grid.innerHTML = `
+        <div style="padding:15px;">
+            Đang tải sản phẩm...
         </div>
     `;
 
+    const { data, error } = await sb.rpc(
+        "get_store_products"
+    );
 
-    item.onclick = () => {
+    if (error) {
 
-        tg.showPopup({
+        console.error(error);
 
-            title: product.name,
+        grid.innerHTML = `
+            <div style="padding:15px;">
+                Không tải được sản phẩm.
+            </div>
+        `;
 
-            message:
-            "Số lượng hiện có: " +
-            product.stock,
+        return;
+    }
 
-            buttons: [
-                {
-                    id: "buy",
-                    type: "default",
-                    text: "Chọn"
-                },
-
-                {
-                    type: "cancel"
-                }
-            ]
-
-        });
-
-    };
+    grid.innerHTML = "";
 
 
-    grid.appendChild(item);
+    data.forEach(product => {
 
-});
+        const item = document.createElement("div");
+
+        item.className = "product";
+
+
+        const icon =
+            icons[product.slug] ||
+            "https://www.google.com/s2/favicons?domain=google.com&sz=128";
+
+
+        item.innerHTML = `
+            <img src="${icon}">
+            
+            <div class="product-name">
+                ${product.name} (${product.stock})
+            </div>
+        `;
+
+
+        item.onclick = () => {
+
+            tg.showPopup({
+
+                title: product.name,
+
+                message:
+                    "Giá: " +
+                    formatMoney(product.price) +
+                    "\n\nSố lượng còn: " +
+                    product.stock,
+
+                buttons: [
+                    {
+                        id: "buy",
+                        type: "default",
+                        text: "Mua"
+                    },
+
+                    {
+                        type: "cancel"
+                    }
+                ]
+
+            });
+
+        };
+
+
+        grid.appendChild(item);
+
+    });
+
+}
+
+
+/* =========================
+   CHẠY KHI MỞ MINI APP
+========================= */
+
+loadProducts();
 
 </script>
 
