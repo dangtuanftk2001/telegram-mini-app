@@ -1,227 +1,178 @@
 <!DOCTYPE html>
 <html lang="vi">
-
 <head>
-<meta charset="UTF-8">
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Quản lý kho</title>
 
-<meta name="viewport"
-content="width=device-width, initial-scale=1.0">
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
-<title>Quản lý kho</title>
+  <style>
+    * {
+      box-sizing: border-box;
+    }
 
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    body {
+      margin: 0;
+      font-family: Arial, sans-serif;
+      background: #f4f4f4;
+      color: #222;
+    }
+
+    .container {
+      max-width: 650px;
+      margin: auto;
+      padding: 15px;
+    }
+
+    .box {
+      background: white;
+      border-radius: 12px;
+      padding: 18px;
+      margin-bottom: 15px;
+      box-shadow: 0 2px 8px rgba(0,0,0,.08);
+    }
+
+    h2, h3 {
+      margin-top: 0;
+    }
+
+    input,
+    select,
+    textarea,
+    button {
+      width: 100%;
+      padding: 11px;
+      margin-top: 8px;
+      margin-bottom: 8px;
+      border-radius: 8px;
+      border: 1px solid #ccc;
+      font-size: 15px;
+    }
+
+    textarea {
+      min-height: 160px;
+      resize: vertical;
+    }
+
+    button {
+      background: #2481cc;
+      color: white;
+      border: none;
+      cursor: pointer;
+      font-weight: bold;
+    }
+
+    button:hover {
+      opacity: .9;
+    }
+
+    .logout {
+      background: #555;
+    }
+
+    .message {
+      margin-top: 10px;
+      font-weight: bold;
+    }
+
+    .product-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 12px;
+      padding: 10px 5px;
+      border-bottom: 1px solid #eee;
+    }
+
+    .price {
+      font-size: 13px;
+      color: #777;
+      margin-top: 3px;
+    }
+
+    #adminArea {
+      display: none;
+    }
+
     .wallet-actions {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 8px;
-}
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+    }
 
-.debit-button {
-    background: #d9534f;
-}
+    .debit-button {
+      background: #d9534f;
+    }
 
-.wallet-history-row {
-    padding: 10px 0;
-    border-bottom: 1px solid #eee;
-}
+    .wallet-history-row {
+      padding: 10px 0;
+      border-bottom: 1px solid #eee;
+    }
 
-.wallet-credit {
-    font-weight: bold;
-}
+    .wallet-credit {
+      font-weight: bold;
+      color: #198754;
+    }
 
-.wallet-debit {
-    font-weight: bold;
-}
+    .wallet-debit {
+      font-weight: bold;
+      color: #d9534f;
+    }
 
-.wallet-date {
-    font-size: 12px;
-    color: #777;
-    margin-top: 4px;
-}
-
-<style>
-
-* {
-    box-sizing: border-box;
-}
-
-body {
-    margin: 0;
-    font-family: Arial, sans-serif;
-    background: #f4f4f4;
-    color: #222;
-}
-
-.container {
-    max-width: 650px;
-    margin: auto;
-    padding: 15px;
-}
-
-.box {
-    background: white;
-    border-radius: 12px;
-    padding: 18px;
-    margin-bottom: 15px;
-    box-shadow: 0 2px 8px rgba(0,0,0,.08);
-}
-
-h2, h3 {
-    margin-top: 0;
-}
-
-input,
-select,
-textarea,
-button {
-    width: 100%;
-    padding: 11px;
-    margin-top: 8px;
-    margin-bottom: 8px;
-    border-radius: 8px;
-    border: 1px solid #ccc;
-    font-size: 15px;
-}
-
-textarea {
-    min-height: 160px;
-    resize: vertical;
-}
-
-button {
-    background: #2481cc;
-    color: white;
-    border: none;
-    cursor: pointer;
-    font-weight: bold;
-}
-
-button:hover {
-    opacity: .9;
-}
-
-.logout {
-    background: #555;
-}
-
-.message {
-    margin-top: 10px;
-    font-weight: bold;
-}
-
-.product-row {
-    display: flex;
-    justify-content: space-between;
-    padding: 10px 5px;
-    border-bottom: 1px solid #eee;
-}
-
-.price {
-    font-size: 13px;
-    color: #777;
-}
-
-#adminArea {
-    display: none;
-}
-
-</style>
+    .wallet-date {
+      font-size: 12px;
+      color: #777;
+      margin-top: 4px;
+    }
+  </style>
 </head>
-
 
 <body>
 
 <div class="container">
 
-<!-- LOGIN -->
+  <!-- LOGIN -->
+  <div class="box" id="loginBox">
+    <h2>🔐 Đăng nhập quản trị</h2>
 
-<div class="box" id="loginBox">
+    <input id="email" type="email" placeholder="Email admin">
+    <input id="password" type="password" placeholder="Mật khẩu">
 
-<h2>🔐 Đăng nhập quản trị</h2>
+    <button onclick="login()">ĐĂNG NHẬP</button>
 
-<input
-id="email"
-type="email"
-placeholder="Email admin">
+    <div class="message" id="loginMessage"></div>
+  </div>
 
-<input
-id="password"
-type="password"
-placeholder="Mật khẩu">
+  <!-- ADMIN -->
+  <div id="adminArea">
 
-<button onclick="login()">
-ĐĂNG NHẬP
-</button>
+    <div class="box">
+      <h2>📦 Quản lý kho</h2>
+      <div id="adminEmail"></div>
+      <button class="logout" onclick="logout()">Đăng xuất</button>
+    </div>
 
-<div
-class="message"
-id="loginMessage">
-</div>
+    <!-- THÊM SẢN PHẨM -->
+    <div class="box">
+      <h3>➕ Thêm sản phẩm</h3>
 
-</div>
+      <input id="productName" placeholder="Tên sản phẩm, ví dụ: ChatGPT">
+      <input id="productSlug" placeholder="Mã sản phẩm, ví dụ: chatgpt">
+      <input id="productPrice" type="number" placeholder="Giá bán, ví dụ: 100000">
 
+      <button onclick="addProduct()">THÊM SẢN PHẨM</button>
 
-<!-- ADMIN -->
+      <div class="message" id="productMessage"></div>
+    </div>
 
-<div id="adminArea">
+    <!-- NHẬP HÀNG -->
+    <div class="box">
+      <h3>📥 Nhập hàng</h3>
 
-<div class="box">
+      <select id="stockProduct"></select>
 
-<h2>📦 Quản lý kho</h2>
-
-<div id="adminEmail"></div>
-
-<button
-class="logout"
-onclick="logout()">
-Đăng xuất
-</button>
-
-</div>
-
-
-<!-- THÊM SẢN PHẨM -->
-
-<div class="box">
-
-<h3>➕ Thêm sản phẩm</h3>
-
-<input
-id="productName"
-placeholder="Tên sản phẩm, ví dụ: ChatGPT">
-
-<input
-id="productSlug"
-placeholder="Mã sản phẩm, ví dụ: chatgpt">
-
-<input
-id="productPrice"
-type="number"
-placeholder="Giá bán, ví dụ: 100000">
-
-<button onclick="addProduct()">
-THÊM SẢN PHẨM
-</button>
-
-<div
-class="message"
-id="productMessage">
-</div>
-
-</div>
-
-
-<!-- NHẬP HÀNG -->
-
-<div class="box">
-
-<h3>📥 Nhập hàng</h3>
-
-<select id="stockProduct"></select>
-
-<textarea
-id="stockData"
-placeholder="Mỗi dòng là 1 sản phẩm.
+      <textarea id="stockData" placeholder="Mỗi dòng là 1 sản phẩm.
 
 Ví dụ:
 
@@ -229,122 +180,80 @@ taikhoan1|matkhau1
 taikhoan2|matkhau2
 taikhoan3|matkhau3"></textarea>
 
-<button onclick="importStock()">
-NHẬP VÀO KHO
-</button>
+      <button onclick="importStock()">NHẬP VÀO KHO</button>
 
-<div
-class="message"
-id="stockMessage">
+      <div class="message" id="stockMessage"></div>
+    </div>
+
+    <!-- TỒN KHO -->
+    <div class="box">
+      <h3>📊 Tồn kho hiện tại</h3>
+      <div id="inventory">Đang tải...</div>
+    </div>
+
+    <!-- QUẢN LÝ VÍ -->
+    <div class="box">
+      <h3>💰 Quản lý ví khách hàng</h3>
+
+      <input
+        id="walletUserId"
+        type="number"
+        placeholder="Telegram ID của khách"
+      >
+
+      <button onclick="loadWallet()">TÌM KHÁCH</button>
+
+      <div id="walletInfo" style="display:none; margin-top:15px;">
+
+        <div style="font-size:20px; font-weight:bold; margin-bottom:12px;">
+          Số dư:
+          <span id="walletBalance">0đ</span>
+        </div>
+
+        <input
+          id="walletAmount"
+          type="number"
+          min="1"
+          placeholder="Số tiền, ví dụ 100000"
+        >
+
+        <input
+          id="walletReason"
+          placeholder="Lý do, ví dụ: Khách chuyển khoản muộn"
+        >
+
+        <div class="wallet-actions">
+          <button onclick="adjustWallet('credit')">+ CỘNG TIỀN</button>
+          <button class="debit-button" onclick="adjustWallet('debit')">- TRỪ TIỀN</button>
+        </div>
+
+        <div class="message" id="walletMessage"></div>
+
+        <hr style="border:none; border-top:1px solid #ddd; margin:20px 0;">
+
+        <h3>📜 Lịch sử ví</h3>
+        <div id="walletHistory"></div>
+      </div>
+    </div>
+
+  </div>
 </div>
-
-</div>
-
-
-<!-- TỒN KHO -->
-
-<div class="box">
-
-<h3>📊 Tồn kho hiện tại</h3>
-
-<div id="inventory">
-Đang tải...
-<!-- QUẢN LÝ VÍ -->
-
-<div class="box">
-
-<h3>💰 Quản lý ví khách hàng</h3>
-
-<input
-id="walletUserId"
-type="number"
-placeholder="Telegram ID của khách">
-
-<button onclick="loadWallet()">
-TÌM KHÁCH
-</button>
-
-<div
-id="walletInfo"
-style="display:none; margin-top:15px;">
-
-<div style="
-    font-size:20px;
-    font-weight:bold;
-    margin-bottom:12px;
-">
-Số dư:
-<span id="walletBalance">0đ</span>
-</div>
-
-<input
-id="walletAmount"
-type="number"
-placeholder="Số tiền, ví dụ 100000">
-
-<input
-id="walletReason"
-placeholder="Lý do, ví dụ: Khách chuyển khoản muộn">
-
-<div class="wallet-actions">
-
-<button
-onclick="adjustWallet('credit')">
-+ CỘNG TIỀN
-</button>
-
-<button
-class="debit-button"
-onclick="adjustWallet('debit')">
-- TRỪ TIỀN
-</button>
-
-</div>
-
-<div
-class="message"
-id="walletMessage">
-</div>
-
-<hr style="
-border:none;
-border-top:1px solid #ddd;
-margin:20px 0;
-">
-
-<h3>📜 Lịch sử ví</h3>
-
-<div id="walletHistory">
-</div>
-
-</div>
-
-</div>
-
-</div>
-
-</div>
-
-
 
 <script>
-
 /* ==========================
    THÔNG TIN SUPABASE
 ========================== */
 
 const SUPABASE_URL =
-"https://xkepazqrzfjvgkijnfrv.supabase.co";
+  "https://xkepazqrzfjvgkijnfrv.supabase.co";
 
 const SUPABASE_KEY =
-"sb_publishable_iWGggP4RFF-MeZA9EaY_WA_u47nCBUg";
-
+  "sb_publishable_iWGggP4RFF-MeZA9EaY_WA_u47nCBUg";
 
 const sb = supabase.createClient(
-    SUPABASE_URL,
-    SUPABASE_KEY
+  SUPABASE_URL,
+  SUPABASE_KEY
 );
-
 
 
 /* ==========================
@@ -352,56 +261,31 @@ const sb = supabase.createClient(
 ========================== */
 
 async function checkLogin() {
+  const {
+    data: { session }
+  } = await sb.auth.getSession();
 
-    const {
-        data: { session }
-    } = await sb.auth.getSession();
-
-
-    if (session) {
-
-        showAdmin(session.user);
-
-    } else {
-
-        showLogin();
-
-    }
-
+  if (session) {
+    showAdmin(session.user);
+  } else {
+    showLogin();
+  }
 }
-
-
 
 function showAdmin(user) {
+  document.getElementById("loginBox").style.display = "none";
+  document.getElementById("adminArea").style.display = "block";
+  document.getElementById("adminEmail").innerText =
+    "Đang đăng nhập: " + user.email;
 
-    document.getElementById("loginBox")
-        .style.display = "none";
-
-    document.getElementById("adminArea")
-        .style.display = "block";
-
-    document.getElementById("adminEmail")
-        .innerText =
-        "Đang đăng nhập: " + user.email;
-
-    loadProducts();
-
-    loadInventory();
-
+  loadProducts();
+  loadInventory();
 }
-
-
 
 function showLogin() {
-
-    document.getElementById("loginBox")
-        .style.display = "block";
-
-    document.getElementById("adminArea")
-        .style.display = "none";
-
+  document.getElementById("loginBox").style.display = "block";
+  document.getElementById("adminArea").style.display = "none";
 }
-
 
 
 /* ==========================
@@ -409,42 +293,27 @@ function showLogin() {
 ========================== */
 
 async function login() {
+  const email =
+    document.getElementById("email").value.trim();
 
-    const email =
-        document.getElementById("email").value.trim();
+  const password =
+    document.getElementById("password").value;
 
-    const password =
-        document.getElementById("password").value;
+  const { data, error } =
+    await sb.auth.signInWithPassword({
+      email,
+      password
+    });
 
+  if (error) {
+    document.getElementById("loginMessage").innerText =
+      "❌ " + error.message;
+    return;
+  }
 
-    const { data, error } =
-        await sb.auth.signInWithPassword({
-            email,
-            password
-        });
-
-
-    if (error) {
-
-        document.getElementById(
-            "loginMessage"
-        ).innerText =
-            "❌ " + error.message;
-
-        return;
-
-    }
-
-
-    document.getElementById(
-        "loginMessage"
-    ).innerText = "";
-
-
-    showAdmin(data.user);
-
+  document.getElementById("loginMessage").innerText = "";
+  showAdmin(data.user);
 }
-
 
 
 /* ==========================
@@ -452,13 +321,9 @@ async function login() {
 ========================== */
 
 async function logout() {
-
-    await sb.auth.signOut();
-
-    showLogin();
-
+  await sb.auth.signOut();
+  showLogin();
 }
-
 
 
 /* ==========================
@@ -466,95 +331,50 @@ async function logout() {
 ========================== */
 
 async function addProduct() {
+  const name =
+    document.getElementById("productName").value.trim();
 
-    const name =
-        document.getElementById(
-            "productName"
-        ).value.trim();
+  const slug =
+    document.getElementById("productSlug").value.trim().toLowerCase();
 
+  const price =
+    Number(document.getElementById("productPrice").value);
 
-    let slug =
-        document.getElementById(
-            "productSlug"
-        ).value.trim().toLowerCase();
+  const message =
+    document.getElementById("productMessage");
 
+  if (!name || !slug || !Number.isFinite(price) || price <= 0) {
+    message.innerText =
+      "❌ Hãy nhập đủ tên, mã và giá lớn hơn 0.";
+    return;
+  }
 
-    const price =
-        Number(
-            document.getElementById(
-                "productPrice"
-            ).value
-        );
-
-
-    if (!name || !slug || !price) {
-
-        document.getElementById(
-            "productMessage"
-        ).innerText =
-            "❌ Hãy nhập đủ tên, mã và giá.";
-
-        return;
-
-    }
-
-const { data, error } =
+  const { error } =
     await sb
-    .from("stock_items")
-    .upsert(items, {
-        onConflict: "product_id,delivery_data",
-        ignoreDuplicates: true
-    })
-    .select();
+      .from("products")
+      .insert({
+        name,
+        slug,
+        price,
+        is_active: true
+      });
 
-            name: name,
+  if (error) {
+    message.innerText =
+      "❌ " + error.message;
+    return;
+  }
 
-            slug: slug,
+  message.innerText =
+    "✅ Đã thêm " + name;
 
-            price: price,
+  document.getElementById("productName").value = "";
+  document.getElementById("productSlug").value = "";
+  document.getElementById("productPrice").value = "";
 
-            is_active: true
-
-        });
-
-
-    if (error) {
-
-        document.getElementById(
-            "productMessage"
-        ).innerText =
-            "❌ " + error.message;
-
-        return;
-
-    }
-
-
-    document.getElementById(
-        "productMessage"
-    ).innerText =
-        "✅ Đã thêm " + name;
-
-
-    document.getElementById(
-        "productName"
-    ).value = "";
-
-    document.getElementById(
-        "productSlug"
-    ).value = "";
-
-    document.getElementById(
-        "productPrice"
-    ).value = "";
-
-
-    await loadProducts();
-
-    await loadInventory();
-
+  await loadProducts();
+  await loadInventory();
 }
-
 
 
 /* ==========================
@@ -562,160 +382,100 @@ const { data, error } =
 ========================== */
 
 async function loadProducts() {
+  const { data, error } =
+    await sb
+      .from("products")
+      .select("id,name,slug")
+      .eq("is_active", true)
+      .order("name");
 
-    const { data, error } =
-        await sb
-        .from("products")
-        .select("id,name,slug")
-        .eq("is_active", true)
-        .order("name");
+  if (error) {
+    console.error(error);
+    return;
+  }
 
+  const select =
+    document.getElementById("stockProduct");
 
-    if (error) {
+  select.innerHTML = "";
 
-        console.error(error);
+  data.forEach(product => {
+    const option =
+      document.createElement("option");
 
-        return;
+    option.value = product.id;
+    option.textContent = product.name;
 
-    }
-
-
-    const select =
-        document.getElementById(
-            "stockProduct"
-        );
-
-
-    select.innerHTML = "";
-
-
-    data.forEach(product => {
-
-        const option =
-            document.createElement(
-                "option"
-            );
-
-
-        option.value =
-            product.id;
-
-
-        option.textContent =
-            product.name;
-
-
-        select.appendChild(option);
-
-    });
-
+    select.appendChild(option);
+  });
 }
-
 
 
 /* ==========================
    NHẬP HÀNG HÀNG LOẠT
+   + TỰ LOẠI TRÙNG
 ========================== */
 
 async function importStock() {
+  const productId =
+    document.getElementById("stockProduct").value;
 
-    const productId =
-        document.getElementById(
-            "stockProduct"
-        ).value;
+  const text =
+    document.getElementById("stockData").value;
 
-
-    const text =
-        document.getElementById(
-            "stockData"
-        ).value;
-
-
-const rawLines =
+  const rawLines =
     text
-    .split("\n")
-    .map(line => line.trim())
-    .filter(line => line.length > 0);
+      .split("\n")
+      .map(line => line.trim())
+      .filter(line => line.length > 0);
 
-// Tự loại trùng ngay trong nội dung bạn vừa paste
-const lines = [...new Set(rawLines)];
+  // Loại các dòng trùng ngay trong lần paste hiện tại
+  const lines = [...new Set(rawLines)];
 
+  if (!productId) {
+    alert("Hãy chọn sản phẩm.");
+    return;
+  }
 
-    if (!productId) {
+  if (lines.length === 0) {
+    alert("Bạn chưa nhập hàng.");
+    return;
+  }
 
-        alert(
-            "Hãy chọn sản phẩm."
-        );
+  const items =
+    lines.map(line => ({
+      product_id: Number(productId),
+      delivery_data: line,
+      status: "available"
+    }));
 
-        return;
+  const { data, error } =
+    await sb
+      .from("stock_items")
+      .upsert(items, {
+        onConflict: "product_id,delivery_data",
+        ignoreDuplicates: true
+      })
+      .select("id");
 
-    }
+  if (error) {
+    document.getElementById("stockMessage").innerText =
+      "❌ " + error.message;
+    return;
+  }
 
+  const added = data ? data.length : 0;
+  const skipped = rawLines.length - added;
 
-    if (lines.length === 0) {
-
-        alert(
-            "Bạn chưa nhập hàng."
-        );
-
-        return;
-
-    }
-
-
-    const items =
-        lines.map(line => ({
-
-            product_id:
-                Number(productId),
-
-            delivery_data:
-                line,
-
-            status:
-                "available"
-
-        }));
-
-
-    const { error } =
-        await sb
-        .from("stock_items")
-        .insert(items);
-
-
-    if (error) {
-
-        document.getElementById(
-            "stockMessage"
-        ).innerText =
-            "❌ " + error.message;
-
-        return;
-
-    }
-
-
-const added = data ? data.length : 0;
-const skipped = rawLines.length - added;
-
-document.getElementById(
-    "stockMessage"
-).innerText =
+  document.getElementById("stockMessage").innerText =
     "✅ Đã thêm " + added +
     " hàng mới. Bỏ qua " +
     skipped + " hàng trùng.";
 
+  document.getElementById("stockData").value = "";
 
-    document.getElementById(
-        "stockData"
-    ).value = "";
-
-
-    await loadInventory();
-
+  await loadInventory();
 }
-
 
 
 /* ==========================
@@ -723,82 +483,63 @@ document.getElementById(
 ========================== */
 
 async function loadInventory() {
+  const { data, error } =
+    await sb.rpc("get_store_products");
 
-    const { data, error } =
-        await sb.rpc(
-            "get_store_products"
-        );
+  const container =
+    document.getElementById("inventory");
 
+  if (error) {
+    container.innerText =
+      "Không tải được tồn kho.";
+    return;
+  }
 
-    const container =
-        document.getElementById(
-            "inventory"
-        );
+  container.innerHTML = "";
 
+  if (!data || data.length === 0) {
+    container.innerHTML =
+      "<div>Chưa có sản phẩm.</div>";
+    return;
+  }
 
-    if (error) {
+  data.forEach(product => {
+    const row =
+      document.createElement("div");
 
-        container.innerText =
-            "Không tải được tồn kho.";
+    row.className =
+      "product-row";
 
-        return;
+    row.innerHTML = `
+      <div>
+        <strong>${escapeHtml(product.name)}</strong>
+        <div class="price">
+          ${formatMoney(product.price)}
+        </div>
+      </div>
+      <strong>${product.stock}</strong>
+    `;
 
-    }
-
-
-    container.innerHTML = "";
-
-
-    data.forEach(product => {
-
-        const row =
-            document.createElement(
-                "div"
-            );
-
-
-        row.className =
-            "product-row";
-
-
-        row.innerHTML = `
-
-            <div>
-
-                <strong>
-                    ${product.name}
-                </strong>
-
-                <div class="price">
-                    ${formatMoney(
-                        product.price
-                    )}
-                </div>
-
-            </div>
-
-            <strong>
-                ${product.stock}
-            </strong>
-
-        `;
-
-
-        container.appendChild(row);
-
-    });
-
+    container.appendChild(row);
+  });
 }
 
 
+/* ==========================
+   TIỆN ÍCH
+========================== */
 
 function formatMoney(number) {
-
-    return new Intl.NumberFormat(
-        "vi-VN"
-    ).format(number) + "đ";
-
+  return new Intl.NumberFormat("vi-VN")
+    .format(Number(number) || 0) + "đ";
 }
+
+function escapeHtml(value) {
+  const div = document.createElement("div");
+  div.textContent = String(value ?? "");
+  return div.innerHTML;
+}
+
 
 /* ==========================
    QUẢN LÝ VÍ
@@ -806,84 +547,52 @@ function formatMoney(number) {
 
 let currentWalletUserId = null;
 
-
 async function loadWallet() {
+  const userId =
+    document.getElementById("walletUserId").value.trim();
 
-    const userId =
-        document.getElementById(
-            "walletUserId"
-        ).value.trim();
+  const message =
+    document.getElementById("walletMessage");
 
+  message.innerText = "";
 
-    const message =
-        document.getElementById(
-            "walletMessage"
-        );
+  if (!userId) {
+    alert("Hãy nhập Telegram ID của khách.");
+    return;
+  }
 
+  currentWalletUserId =
+    Number(userId);
 
-    message.innerText = "";
+  if (!Number.isSafeInteger(currentWalletUserId) ||
+      currentWalletUserId <= 0) {
+    alert("Telegram ID không hợp lệ.");
+    return;
+  }
 
+  const {
+    data: wallet,
+    error
+  } =
+    await sb
+      .from("wallets")
+      .select("telegram_user_id,balance")
+      .eq("telegram_user_id", currentWalletUserId)
+      .maybeSingle();
 
-    if (!userId) {
+  if (error) {
+    message.innerText =
+      "❌ " + error.message;
+    return;
+  }
 
-        alert(
-            "Hãy nhập Telegram ID của khách."
-        );
+  document.getElementById("walletInfo").style.display = "block";
 
-        return;
+  document.getElementById("walletBalance").innerText =
+    formatMoney(wallet ? wallet.balance : 0);
 
-    }
-
-
-    currentWalletUserId =
-        Number(userId);
-
-
-    const {
-        data: wallet,
-        error
-    } =
-        await sb
-        .from("wallets")
-        .select(
-            "telegram_user_id,balance"
-        )
-        .eq(
-            "telegram_user_id",
-            currentWalletUserId
-        )
-        .maybeSingle();
-
-
-    if (error) {
-
-        message.innerText =
-            "❌ " + error.message;
-
-        return;
-
-    }
-
-
-    document.getElementById(
-        "walletInfo"
-    ).style.display = "block";
-
-
-    document.getElementById(
-        "walletBalance"
-    ).innerText =
-        formatMoney(
-            wallet
-                ? wallet.balance
-                : 0
-        );
-
-
-    await loadWalletHistory();
-
+  await loadWalletHistory();
 }
-
 
 
 /* ==========================
@@ -891,139 +600,82 @@ async function loadWallet() {
 ========================== */
 
 async function adjustWallet(type) {
+  if (!currentWalletUserId) {
+    alert("Hãy tìm khách trước.");
+    return;
+  }
 
-    if (!currentWalletUserId) {
+  const rawAmount =
+    Number(document.getElementById("walletAmount").value);
 
-        alert(
-            "Hãy tìm khách trước."
-        );
+  const reason =
+    document.getElementById("walletReason").value.trim();
 
-        return;
+  if (!Number.isFinite(rawAmount) || rawAmount <= 0) {
+    alert("Số tiền phải lớn hơn 0.");
+    return;
+  }
 
-    }
+  if (!reason) {
+    alert("Hãy nhập lý do điều chỉnh.");
+    return;
+  }
 
+  const amount =
+    type === "credit"
+      ? rawAmount
+      : -rawAmount;
 
-    const rawAmount =
-        Number(
-            document.getElementById(
-                "walletAmount"
-            ).value
-        );
+  const actionText =
+    type === "credit"
+      ? "CỘNG"
+      : "TRỪ";
 
+  const ok =
+    confirm(
+      actionText +
+      " " +
+      formatMoney(rawAmount) +
+      " cho Telegram ID " +
+      currentWalletUserId +
+      "?"
+    );
 
-    const reason =
-        document.getElementById(
-            "walletReason"
-        ).value.trim();
+  if (!ok) {
+    return;
+  }
 
+  const {
+    data,
+    error
+  } =
+    await sb.rpc(
+      "admin_adjust_wallet",
+      {
+        p_telegram_user_id: currentWalletUserId,
+        p_amount: amount,
+        p_reason: reason
+      }
+    );
 
-    if (
-        !rawAmount ||
-        rawAmount <= 0
-    ) {
+  const message =
+    document.getElementById("walletMessage");
 
-        alert(
-            "Số tiền phải lớn hơn 0."
-        );
-
-        return;
-
-    }
-
-
-    if (!reason) {
-
-        alert(
-            "Hãy nhập lý do điều chỉnh."
-        );
-
-        return;
-
-    }
-
-
-    const amount =
-        type === "credit"
-            ? rawAmount
-            : -rawAmount;
-
-
-    const actionText =
-        type === "credit"
-            ? "CỘNG"
-            : "TRỪ";
-
-
-    const ok =
-        confirm(
-            actionText +
-            " " +
-            formatMoney(rawAmount) +
-            " cho Telegram ID " +
-            currentWalletUserId +
-            "?"
-        );
-
-
-    if (!ok) {
-        return;
-    }
-
-
-    const {
-        data,
-        error
-    } =
-        await sb.rpc(
-            "admin_adjust_wallet",
-            {
-                p_telegram_user_id:
-                    currentWalletUserId,
-
-                p_amount:
-                    amount,
-
-                p_reason:
-                    reason
-            }
-        );
-
-
-    const message =
-        document.getElementById(
-            "walletMessage"
-        );
-
-
-    if (error) {
-
-        message.innerText =
-            "❌ " + error.message;
-
-        return;
-
-    }
-
-
+  if (error) {
     message.innerText =
-        "✅ Thành công. Số dư mới: " +
-        formatMoney(data);
+      "❌ " + error.message;
+    return;
+  }
 
+  message.innerText =
+    "✅ Thành công. Số dư mới: " +
+    formatMoney(data);
 
-    document.getElementById(
-        "walletAmount"
-    ).value = "";
+  document.getElementById("walletAmount").value = "";
+  document.getElementById("walletReason").value = "";
 
-
-    document.getElementById(
-        "walletReason"
-    ).value = "";
-
-
-    await loadWallet();
-
+  await loadWallet();
 }
-
 
 
 /* ==========================
@@ -1031,137 +683,92 @@ async function adjustWallet(type) {
 ========================== */
 
 async function loadWalletHistory() {
+  const container =
+    document.getElementById("walletHistory");
 
-    const container =
-        document.getElementById(
-            "walletHistory"
-        );
+  container.innerHTML =
+    "Đang tải...";
 
+  const {
+    data,
+    error
+  } =
+    await sb
+      .from("wallet_transactions")
+      .select(
+        "amount,type,reason,created_at,sepay_transaction_id"
+      )
+      .eq(
+        "telegram_user_id",
+        currentWalletUserId
+      )
+      .order(
+        "created_at",
+        {
+          ascending: false
+        }
+      )
+      .limit(30);
 
+  if (error) {
+    container.innerText =
+      "Không tải được lịch sử.";
+    return;
+  }
+
+  if (!data || data.length === 0) {
     container.innerHTML =
-        "Đang tải...";
+      "<div>Chưa có giao dịch ví.</div>";
+    return;
+  }
 
+  container.innerHTML = "";
 
-    const {
-        data,
-        error
-    } =
-        await sb
-        .from(
-            "wallet_transactions"
-        )
-        .select(
-            "amount,type,reason,created_at,sepay_transaction_id"
-        )
-        .eq(
-            "telegram_user_id",
-            currentWalletUserId
-        )
-        .order(
-            "created_at",
-            {
-                ascending: false
-            }
-        )
-        .limit(30);
+  data.forEach(tx => {
+    const row =
+      document.createElement("div");
 
+    row.className =
+      "wallet-history-row";
 
-    if (error) {
+    const isCredit =
+      tx.type === "credit";
 
-        container.innerText =
-            "Không tải được lịch sử.";
+    const sign =
+      isCredit ? "+" : "-";
 
-        return;
+    const date =
+      new Date(tx.created_at)
+        .toLocaleString("vi-VN");
 
-    }
+    row.innerHTML = `
+      <div class="${
+        isCredit
+          ? "wallet-credit"
+          : "wallet-debit"
+      }">
+        ${sign}${formatMoney(tx.amount)}
+      </div>
 
+      <div>
+        ${escapeHtml(tx.reason || "Không có ghi chú")}
+      </div>
 
-    if (
-        !data ||
-        data.length === 0
-    ) {
+      <div class="wallet-date">
+        ${escapeHtml(date)}
+      </div>
+    `;
 
-        container.innerHTML =
-            "<div>Chưa có giao dịch ví.</div>";
-
-        return;
-
-    }
-
-
-    container.innerHTML = "";
-
-
-    data.forEach(tx => {
-
-        const row =
-            document.createElement(
-                "div"
-            );
-
-
-        row.className =
-            "wallet-history-row";
-
-
-        const isCredit =
-            tx.type === "credit";
-
-
-        const sign =
-            isCredit
-                ? "+"
-                : "-";
-
-
-        const date =
-            new Date(
-                tx.created_at
-            ).toLocaleString(
-                "vi-VN"
-            );
-
-
-        row.innerHTML = `
-
-            <div class="${
-                isCredit
-                    ? "wallet-credit"
-                    : "wallet-debit"
-            }">
-
-                ${sign}${formatMoney(
-                    tx.amount
-                )}
-
-            </div>
-
-            <div>
-                ${
-                    tx.reason ||
-                    "Không có ghi chú"
-                }
-            </div>
-
-            <div class="wallet-date">
-                ${date}
-            </div>
-
-        `;
-
-
-        container.appendChild(row);
-
-    });
-
+    container.appendChild(row);
+  });
 }
+
 
 /* ==========================
    START
 ========================== */
 
 checkLogin();
-
 </script>
 
 </body>
