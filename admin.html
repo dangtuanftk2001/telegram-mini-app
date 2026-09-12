@@ -302,54 +302,66 @@ taikhoan3|matkhau3"></textarea>
 
       <div id="inventory">Đang tải...</div>
 
-      <div class="summary-grid">
-        <div class="summary-card">
-          <div class="summary-number" id="sumAvailable">0</div>
-          <div class="muted">Còn hàng</div>
-        </div>
-
-        <div class="summary-card">
-          <div class="summary-number" id="sumReserved">0</div>
-          <div class="muted">Đang giữ</div>
-        </div>
-
-        <div class="summary-card">
-          <div class="summary-number" id="sumSold">0</div>
-          <div class="muted">Đã bán</div>
-        </div>
-      </div>
     </div>
 
-    <!-- CHI TIẾT HÀNG TRONG KHO -->
+    <!-- CHI TIẾT HÀNG TRONG KHO - CHỈ TẢI KHI CẦN -->
     <div class="box">
       <h3>🧾 Chi tiết hàng trong kho</h3>
 
-      <div class="filter-grid">
-        <select id="stockListProduct" onchange="loadStockItems()">
-          <option value="">Tất cả sản phẩm</option>
-        </select>
+      <button id="toggleStockDetailsBtn" onclick="toggleStockDetails()">
+        👁 XEM CHI TIẾT KHO
+      </button>
 
-        <select id="stockStatus" onchange="loadStockItems()">
-          <option value="">Tất cả trạng thái</option>
-          <option value="available">Còn hàng</option>
-          <option value="reserved">Đang giữ</option>
-          <option value="sold">Đã bán</option>
-        </select>
-      </div>
+      <div id="stockDetailsArea" style="display:none; margin-top:12px;">
 
-      <input
-        id="stockSearch"
-        placeholder="Tìm tài khoản / key / nội dung..."
-        oninput="debouncedStockSearch()"
-      >
+        <div class="filter-grid">
+          <select id="stockListProduct" onchange="loadStockItems()">
+            <option value="">Tất cả sản phẩm</option>
+          </select>
 
-      <div class="muted">
-        Chỉ hàng còn trạng thái <b>available</b> mới được sửa hoặc xóa.
-        Hàng đang giữ hoặc đã bán chỉ được xem.
-      </div>
+          <select id="stockStatus" onchange="loadStockItems()">
+            <option value="">Tất cả trạng thái</option>
+            <option value="available">Còn hàng</option>
+            <option value="reserved">Đang giữ</option>
+            <option value="sold">Đã bán</option>
+          </select>
+        </div>
 
-      <div id="stockItemList" style="margin-top:10px;">
-        Đang tải...
+        <input
+          id="stockSearch"
+          placeholder="Tìm tài khoản / key / nội dung..."
+          oninput="debouncedStockSearch()"
+        >
+
+        <div class="muted">
+          Chỉ hàng còn trạng thái <b>available</b> mới được sửa hoặc xóa.
+          Hàng đang giữ hoặc đã bán chỉ được xem.
+        </div>
+
+        <div class="summary-grid">
+          <div class="summary-card">
+            <div class="summary-number" id="detailAvailable">0</div>
+            <div class="muted">Còn hàng</div>
+          </div>
+
+          <div class="summary-card">
+            <div class="summary-number" id="detailReserved">0</div>
+            <div class="muted">Đang giữ</div>
+          </div>
+
+          <div class="summary-card">
+            <div class="summary-number" id="detailSold">0</div>
+            <div class="muted">Đã bán</div>
+          </div>
+        </div>
+
+        <div id="stockItemList" style="margin-top:10px;">
+          Chưa tải dữ liệu.
+        </div>
+
+        <button class="logout" onclick="toggleStockDetails()">
+          ▲ ĐÓNG CHI TIẾT KHO
+        </button>
       </div>
     </div>
 
@@ -425,6 +437,7 @@ const sb = supabase.createClient(
 
 let currentWalletUserId = null;
 let stockSearchTimer = null;
+let stockDetailsLoaded = false;
 
 
 /* ==========================
@@ -526,11 +539,18 @@ async function logout() {
 ========================== */
 
 async function refreshAll() {
+  // Khi mở trang admin chỉ tải dữ liệu nhẹ:
+  // danh sách sản phẩm + tổng tồn theo sản phẩm.
   await loadProducts();
   await loadInventory();
-  await loadStockProductFilter();
-  await loadStockItems();
-  await loadStockSummary();
+
+  // Chỉ làm mới chi tiết nếu người dùng đang mở khu chi tiết kho.
+  const detailArea = document.getElementById("stockDetailsArea");
+  if (detailArea && detailArea.style.display !== "none") {
+    await loadStockProductFilter();
+    await loadStockItems();
+    await loadStockSummary();
+  }
 }
 
 
@@ -687,8 +707,12 @@ async function importStock() {
   document.getElementById("stockData").value = "";
 
   await loadInventory();
-  await loadStockItems();
-  await loadStockSummary();
+
+  const detailArea = document.getElementById("stockDetailsArea");
+  if (detailArea && detailArea.style.display !== "none") {
+    await loadStockItems();
+    await loadStockSummary();
+  }
 }
 
 
@@ -764,9 +788,58 @@ async function loadStockSummary() {
     if (item.status === "sold") sold++;
   });
 
-  document.getElementById("sumAvailable").innerText = available;
-  document.getElementById("sumReserved").innerText = reserved;
-  document.getElementById("sumSold").innerText = sold;
+  document.getElementById("detailAvailable").innerText = available;
+  document.getElementById("detailReserved").innerText = reserved;
+  document.getElementById("detailSold").innerText = sold;
+}
+
+
+/* ==========================
+   MỞ / ĐÓNG CHI TIẾT KHO
+   Chỉ query Supabase khi người dùng bấm xem
+========================== */
+
+async function toggleStockDetails() {
+  const area =
+    document.getElementById("stockDetailsArea");
+
+  const button =
+    document.getElementById("toggleStockDetailsBtn");
+
+  const isOpen =
+    area.style.display !== "none";
+
+  if (isOpen) {
+    area.style.display = "none";
+    button.innerText = "👁 XEM CHI TIẾT KHO";
+
+    // Giải phóng phần HTML danh sách để trang nhẹ hơn.
+    document.getElementById("stockItemList").innerHTML =
+      "Chưa tải dữ liệu.";
+
+    return;
+  }
+
+  area.style.display = "block";
+  button.innerText = "⏳ ĐANG TẢI...";
+
+  try {
+    if (!stockDetailsLoaded) {
+      await loadStockProductFilter();
+      stockDetailsLoaded = true;
+    }
+
+    await Promise.all([
+      loadStockItems(),
+      loadStockSummary()
+    ]);
+
+    button.innerText = "👁 ĐANG XEM CHI TIẾT KHO";
+
+  } catch (error) {
+    console.error(error);
+    button.innerText = "👁 XEM CHI TIẾT KHO";
+  }
 }
 
 
